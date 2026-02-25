@@ -538,7 +538,8 @@ def settings_ayats():
         if ayat:
             db.session.delete(ayat)
     db.session.commit()
-    return redirect(url_for('main.settings'))
+    # Redirect back to settings but stay on the "aturan" (Pasal) tab
+    return redirect(url_for('main.settings', _anchor='tab-aturan'))
 
 @main.route("/settings/categories", methods=['POST'])
 @school_admin_required

@@ -190,13 +190,21 @@
                         </div>
 
                         <!-- Form Tambah Ayat -->
-                        <form action="{{ url_for('main.settings_ayats') }}" method="POST" class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
+                        <form action="{{ url_for('main.settings_ayats') }}" method="POST" class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 items-start ayat-form" data-rule-id="{{ rule.id }}">
                             <input type="hidden" name="action" value="add">
                             <input type="hidden" name="rule_id" value="{{ rule.id }}">
                             <input type="text" name="number" placeholder="No. Ayat (opsional)" class="px-3 py-2 border border-gray-300 rounded text-sm">
-                            <input type="text" name="description" placeholder="Deskripsi Ayat" required class="px-3 py-2 border border-gray-300 rounded text-sm col-span-2 sm:col-span-1">
+                            
+                            <div class="col-span-2 sm:col-span-1">
+                                <textarea name="description" placeholder="Deskripsi Ayat (maks 1000 karakter)" required class="ayat-textarea w-full px-3 py-2 border border-gray-300 rounded text-sm resize-none transition-all duration-200" maxlength="1000" rows="2" style="min-height: 60px; max-height: 500px;"></textarea>
+                                <div class="flex justify-between items-center mt-2 gap-2">
+                                    <span class="text-xs text-gray-600 whitespace-nowrap"><span class="ayat-counter">0</span>/1000 karakter</span>
+                                    <span class="text-xs font-semibold text-red-600 ayat-warning text-right" style="display: none;">⚠️ Ayat yang dimasukkan lebih dari 1000 karakter, harap disingkat</span>
+                                </div>
+                            </div>
+                            
                             <div class="sm:col-span-3 flex justify-end">
-                                <button type="submit" class="bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700">Tambah Ayat</button>
+                                <button type="submit" class="ayat-submit bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-400" style="font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">➕ Tambah Ayat</button>
                             </div>
                         </form>
                     </div>
@@ -324,3 +332,120 @@
 
 </div>
 {% endblock %}
+
+<script>
+// Initialize tab from URL hash
+window.addEventListener('load', function() {
+    const hash = window.location.hash;
+    if (hash.startsWith('#tab-')) {
+        const tabName = hash.replace('#tab-', '');
+        setTimeout(() => {
+            // Find all tab buttons (they have border-b-2 class and are direct children of flex container)
+            const tabContainer = document.querySelector('div.flex.border-b.border-gray-200.min-w-max');
+            if (tabContainer) {
+                const buttons = tabContainer.querySelectorAll('button');
+                buttons.forEach(btn => {
+                    const text = btn.textContent.toLowerCase();
+                    if ((tabName === 'aturan' && text.includes('pasal')) || 
+                        (tabName === 'sekolah' && text.includes('profil')) ||
+                        (tabName === 'anggota' && text.includes('anggota')) ||
+                        (tabName === 'kategori' && text.includes('kategori')) ||
+                        (tabName === 'backup' && text.includes('backup'))) {
+                        btn.click();
+                    }
+                });
+            }
+        }, 100);
+    }
+});
+
+// Function to auto-expand textarea
+function autoExpandTextarea(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 500) + 'px';
+}
+
+// Function to update character counter and warning
+function updateAyatCounter(textarea) {
+    const form = textarea.closest('.ayat-form');
+    if (!form) return;
+    
+    const counter = form.querySelector('.ayat-counter');
+    const warning = form.querySelector('.ayat-warning');
+    const submitBtn = form.querySelector('.ayat-submit');
+    const charCount = textarea.value.length;
+    
+    // Update counter display
+    if (counter) {
+        counter.textContent = charCount;
+    }
+    
+    // Auto-expand textarea
+    autoExpandTextarea(textarea);
+    
+    // Handle warning and button state
+    if (charCount >= 1000) {
+        // At or over limit
+        if (warning) warning.style.display = 'block';
+        if (submitBtn) submitBtn.disabled = true;
+        textarea.classList.add('border-red-500', 'bg-red-50');
+    } else {
+        // Under limit
+        if (warning) warning.style.display = 'none';
+        if (submitBtn) submitBtn.disabled = false;
+        textarea.classList.remove('border-red-500', 'bg-red-50');
+    }
+}
+
+// Initialize on page load and when dynamically added
+function initializeAyatTextareas() {
+    document.querySelectorAll('.ayat-textarea').forEach(textarea => {
+        // Remove old listener if exists
+        textarea.removeEventListener('input', handleTextareaInput);
+        
+        // Add new listener
+        textarea.addEventListener('input', handleTextareaInput);
+        
+        // Set initial state
+        updateAyatCounter(textarea);
+        autoExpandTextarea(textarea);
+    });
+}
+
+// Handler function for textarea input
+function handleTextareaInput(e) {
+    updateAyatCounter(e.target);
+}
+
+// Initialize on document ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeAyatTextareas);
+} else {
+    initializeAyatTextareas();
+}
+
+// Also initialize after a delay to catch dynamically added textareas
+setTimeout(initializeAyatTextareas, 500);
+
+// Try to switch tab based on hash after form submission
+setTimeout(() => {
+    const hash = window.location.hash;
+    if (hash.startsWith('#tab-')) {
+        const tabName = hash.replace('#tab-', '');
+        const tabContainer = document.querySelector('div.flex.border-b.border-gray-200.min-w-max');
+        if (tabContainer) {
+            const buttons = tabContainer.querySelectorAll('button');
+            buttons.forEach(btn => {
+                const text = btn.textContent.toLowerCase();
+                if ((tabName === 'aturan' && text.includes('pasal')) || 
+                    (tabName === 'sekolah' && text.includes('profil')) ||
+                    (tabName === 'anggota' && text.includes('anggota')) ||
+                    (tabName === 'kategori' && text.includes('kategori')) ||
+                    (tabName === 'backup' && text.includes('backup'))) {
+                    btn.click();
+                }
+            });
+        }
+    }
+}, 300);
+</script>

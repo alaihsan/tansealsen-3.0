@@ -123,7 +123,7 @@ class Ayat(db.Model):
     __tablename__ = 'ayats'
     id = db.Column(db.Integer, primary_key=True)
     number = db.Column(db.String(50), nullable=True)
-    description = db.Column(db.String(500), nullable=False)
+    description = db.Column(db.String(1000), nullable=False)
     rule_id = db.Column(db.Integer, db.ForeignKey('violation_rules.id'), nullable=False, index=True)
 
     def __repr__(self):
