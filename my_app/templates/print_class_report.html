@@ -45,7 +45,7 @@
                 <td class="font-bold">{{ v.student.name }}</td>
                 <td>{{ v.tanggal_kejadian }}</td>
                 <td>
-                    <div class="font-bold">{{ v.pasal or '-' }}</div>
+                    <div class="font-bold">{{ v.pasal or '-' }}{% if v.ayats|length > 0 %} - {% for a in v.ayats %}{{ a.description }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}</div>
                     <!-- Poin disembunyikan sesuai permintaan -->
                     <!-- <div class="text-xs text-gray-500">{{ v.kategori_pelanggaran }} ({{ v.points }})</div> -->
                     <div class="text-xs text-gray-500">{{ v.kategori_pelanggaran }}</div>

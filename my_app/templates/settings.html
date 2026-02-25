@@ -152,17 +152,54 @@
             <ul class="space-y-3">
                 {% for rule in rules %}
                 <li class="flex items-start justify-between p-4 border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all">
-                    <div class="pr-4">
-                        <span class="inline-block bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded mb-1">{{ rule.code }}</span>
-                        <p class="text-gray-700 text-sm leading-relaxed">{{ rule.description }}</p>
+                    <div class="pr-4 w-full">
+                        <div class="flex items-center justify-between gap-4">
+                            <div>
+                                <span class="inline-block bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded mb-1">{{ rule.code }}</span>
+                                <p class="text-gray-700 text-sm leading-relaxed">{{ rule.description }}</p>
+                            </div>
+                            <div class="flex-shrink-0 flex items-center gap-2">
+                                <form action="{{ url_for('main.settings_rules') }}" method="POST" class="inline">
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="rule_id" value="{{ rule.id }}">
+                                    <button type="submit" class="text-gray-400 hover:text-red-600 transition-colors p-1" onclick="return confirm('Hapus pasal ini?')">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Daftar Ayat untuk Pasal ini -->
+                        <div class="mt-3">
+                            {% if rule.ayats|length > 0 %}
+                                <div class="flex flex-wrap gap-2">
+                                    {% for a in rule.ayats %}
+                                        <div class="px-3 py-1 rounded-full bg-gray-100 text-sm text-gray-700 border border-gray-200 flex items-center gap-2">
+                                            <span>{{ a.number or '' }}{% if a.number %} - {% endif %}{{ a.description }}</span>
+                                            <form action="{{ url_for('main.settings_ayats') }}" method="POST" class="inline">
+                                                <input type="hidden" name="action" value="delete">
+                                                <input type="hidden" name="ayat_id" value="{{ a.id }}">
+                                                <button type="submit" class="text-red-500 hover:text-red-700 text-xs ml-2" onclick="return confirm('Hapus ayat ini?')">Hapus</button>
+                                            </form>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="text-xs text-gray-400">Belum ada ayat untuk pasal ini.</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Form Tambah Ayat -->
+                        <form action="{{ url_for('main.settings_ayats') }}" method="POST" class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
+                            <input type="hidden" name="action" value="add">
+                            <input type="hidden" name="rule_id" value="{{ rule.id }}">
+                            <input type="text" name="number" placeholder="No. Ayat (opsional)" class="px-3 py-2 border border-gray-300 rounded text-sm">
+                            <input type="text" name="description" placeholder="Deskripsi Ayat" required class="px-3 py-2 border border-gray-300 rounded text-sm col-span-2 sm:col-span-1">
+                            <div class="sm:col-span-3 flex justify-end">
+                                <button type="submit" class="bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700">Tambah Ayat</button>
+                            </div>
+                        </form>
                     </div>
-                    <form action="{{ url_for('main.settings_rules') }}" method="POST" class="flex-shrink-0">
-                        <input type="hidden" name="action" value="delete">
-                        <input type="hidden" name="rule_id" value="{{ rule.id }}">
-                        <button type="submit" class="text-gray-400 hover:text-red-600 transition-colors p-1" onclick="return confirm('Hapus pasal ini?')">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
-                    </form>
                 </li>
                 {% else %}
                 <li class="text-center text-gray-400 text-sm py-8 border-2 border-dashed border-gray-200 rounded-xl">Belum ada pasal yang ditambahkan.</li>

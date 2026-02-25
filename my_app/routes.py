@@ -12,7 +12,7 @@ from functools import wraps
 import time
 
 from my_app.extensions import db
-from my_app.models import User, Student, Violation, Classroom, School, ViolationRule, ViolationCategory, ViolationPhoto
+from my_app.models import User, Student, Violation, Classroom, School, ViolationRule, ViolationCategory, ViolationPhoto, Ayat
 from my_app.utils import compress_image
 from flask_login import login_user, current_user, logout_user, login_required
 
@@ -221,6 +221,20 @@ def get_students_by_class(class_name):
     else:
         return jsonify([])
 
+
+@main.route("/api/rules/<int:rule_id>/ayats")
+@school_admin_required
+def get_ayats_by_rule(rule_id):
+    ayats = Ayat.query.filter_by(rule_id=rule_id).all()
+    result = []
+    for a in ayats:
+        result.append({
+            'id': a.id,
+            'number': a.number,
+            'description': a.description
+        })
+    return jsonify(result)
+
 @main.route("/student/delete/<int:student_id>", methods=['POST'])
 @school_admin_required
 def delete_student(student_id):
@@ -248,7 +262,8 @@ def add_violation():
         class_name = request.form.get('kelas')
         student_name = request.form.get('nama_murid')
         description = request.form.get('deskripsi')
-        pasal = request.form.get('pasal')
+        pasal_id = request.form.get('pasal_id')
+        ayat_ids = request.form.getlist('ayat_ids')
         kategori_id = request.form.get('kategori_id')
         tanggal_str = request.form.get('tanggal_kejadian')
         jam_str = request.form.get('jam_kejadian')
@@ -270,6 +285,13 @@ def add_violation():
                     date_posted = date_obj 
             except (ValueError, TypeError):
                 date_posted = datetime.utcnow()
+            # Determine pasal string from selected rule id (if provided)
+            pasal = None
+            if pasal_id:
+                rule = ViolationRule.query.filter_by(id=pasal_id, school_id=current_user.school_id).first()
+                if rule:
+                    pasal = f"{rule.code} - {rule.description}"
+
             violation = Violation(
                 description=description,
                 points=points,
@@ -281,6 +303,15 @@ def add_violation():
             )
             db.session.add(violation)
             db.session.flush()
+            # Associate selected ayats (if any)
+            if ayat_ids:
+                try:
+                    ayat_int_ids = [int(a) for a in ayat_ids if a]
+                    ayat_objs = Ayat.query.filter(Ayat.id.in_(ayat_int_ids), Ayat.rule_id == pasal_id).all()
+                    if ayat_objs:
+                        violation.ayats = ayat_objs
+                except ValueError:
+                    pass
             files = request.files.getlist('bukti_file')
             valid_files = [f for f in files if f.filename != '']
             for file in valid_files[:10]: 
@@ -488,6 +519,27 @@ def settings_rules():
     db.session.commit()
     return redirect(url_for('main.settings'))
 
+
+@main.route("/settings/ayats", methods=['POST'])
+@school_admin_required
+def settings_ayats():
+    action = request.form.get('action')
+    if action == 'add':
+        rule_id = request.form.get('rule_id')
+        number = request.form.get('number')
+        description = request.form.get('description')
+        if rule_id and description:
+            rule = ViolationRule.query.filter_by(id=rule_id, school_id=current_user.school_id).first()
+            if rule:
+                db.session.add(Ayat(number=number, description=description, rule_id=rule.id))
+    elif action == 'delete':
+        ayat_id = request.form.get('ayat_id')
+        ayat = Ayat.query.join(ViolationRule).filter(Ayat.id==ayat_id, ViolationRule.school_id==current_user.school_id).first()
+        if ayat:
+            db.session.delete(ayat)
+    db.session.commit()
+    return redirect(url_for('main.settings'))
+
 @main.route("/settings/categories", methods=['POST'])
 @school_admin_required
 def settings_categories():
@@ -562,6 +614,7 @@ def backup_data():
                 "reporter": v.di_input_oleh,
                 "is_remitted": v.is_remitted,
                 "remission_reason": v.remission_reason,
+                "ayats": [{"number": a.number, "description": a.description} for a in v.ayats],
                 "photos": photos_data
             })
             
@@ -574,7 +627,13 @@ def backup_data():
 
     # b. Data Settings (Anggota, Pasal, Kategori)
     members_data = [{"username": u.username, "full_name": u.full_name} for u in school.users if u.role != 'super_admin']
-    rules_data = [{"code": r.code, "description": r.description} for r in school.rules]
+    # Include ayats for each rule
+    rules_data = []
+    for r in school.rules:
+        rule_entry = {"code": r.code, "description": r.description, "ayats": []}
+        for a in r.ayats:
+            rule_entry["ayats"].append({"number": a.number, "description": a.description})
+        rules_data.append(rule_entry)
     categories_data = [{"name": c.name, "points": c.points} for c in school.categories]
     classrooms_data = [{"name": c.name} for c in school.classrooms]
 
@@ -674,10 +733,17 @@ def restore_data():
                             with open(os.path.join(upload_folder, logo_name), 'wb') as f:
                                 f.write(zf.read(logo_name))
 
-                # Restore Rules
+                # Restore Rules (with ayats)
                 for r_data in data.get('settings', {}).get('rules', []):
-                    if not ViolationRule.query.filter_by(code=r_data['code'], school_id=school.id).first():
-                        db.session.add(ViolationRule(code=r_data['code'], description=r_data['description'], school_id=school.id))
+                    rule = ViolationRule.query.filter_by(code=r_data['code'], school_id=school.id).first()
+                    if not rule:
+                        rule = ViolationRule(code=r_data['code'], description=r_data['description'], school_id=school.id)
+                        db.session.add(rule)
+                        db.session.flush()
+                    # Restore ayats for this rule
+                    for a_data in r_data.get('ayats', []):
+                        if not Ayat.query.filter_by(rule_id=rule.id, description=a_data['description'], number=a_data.get('number')).first():
+                            db.session.add(Ayat(number=a_data.get('number'), description=a_data['description'], rule_id=rule.id))
                 
                 # Restore Categories
                 for c_data in data.get('settings', {}).get('categories', []):
@@ -749,6 +815,11 @@ def restore_data():
                             db.session.flush()
                             count_violations += 1
                             
+                            # Link ayats back to violation (by matching description)
+                            for a_data in v_data.get('ayats', []):
+                                ayat = Ayat.query.filter_by(description=a_data['description'], number=a_data.get('number')).first()
+                                if ayat:
+                                    violation.ayats.append(ayat)
                             # Restore Photos
                             for p_name in v_data.get('photos', []):
                                 # Extract file

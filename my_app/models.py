@@ -68,6 +68,9 @@ class ViolationRule(db.Model):
     description = db.Column(db.String(500), nullable=False)
     school_id = db.Column(db.Integer, db.ForeignKey('schools.id'), nullable=False)
 
+    # relationship: rule -> ayats
+    ayats = db.relationship('Ayat', backref='rule', lazy=True, cascade='all, delete-orphan')
+
 class ViolationCategory(db.Model):
     __tablename__ = 'violation_categories'
     id = db.Column(db.Integer, primary_key=True)
@@ -107,6 +110,27 @@ class Violation(db.Model):
     @property
     def tanggal_dicatat(self):
         return self.date_posted
+
+# Association table between violations and ayats (many-to-many)
+violation_ayats = db.Table(
+    'violation_ayats',
+    db.Column('violation_id', db.Integer, db.ForeignKey('violations.id'), primary_key=True),
+    db.Column('ayat_id', db.Integer, db.ForeignKey('ayats.id'), primary_key=True)
+)
+
+# Ayat model (sub-clause under a ViolationRule/Pasal)
+class Ayat(db.Model):
+    __tablename__ = 'ayats'
+    id = db.Column(db.Integer, primary_key=True)
+    number = db.Column(db.String(50), nullable=True)
+    description = db.Column(db.String(500), nullable=False)
+    rule_id = db.Column(db.Integer, db.ForeignKey('violation_rules.id'), nullable=False, index=True)
+
+    def __repr__(self):
+        return f"<Ayat {self.number or self.id}: {self.description[:30]}...>"
+
+# Link Violation -> Ayat via many-to-many
+Violation.ayats = db.relationship('Ayat', secondary=violation_ayats, backref=db.backref('violations', lazy='dynamic'))
 
 class ViolationPhoto(db.Model):
     __tablename__ = 'violation_photos'

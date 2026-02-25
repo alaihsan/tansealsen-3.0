@@ -11,7 +11,7 @@ if __name__ == "__main__":
 from flask import Flask
 from my_app.config import Config
 from my_app.extensions import db, migrate
-from my_app.models import User, School, Student, Classroom, Violation  # Import models agar terdeteksi
+from my_app.models import User, School, Student, Classroom, Violation, ViolationRule, ViolationCategory, Ayat, ViolationPhoto  # Import models agar terdeteksi
 from my_app.routes import main
 from flask_login import LoginManager
 

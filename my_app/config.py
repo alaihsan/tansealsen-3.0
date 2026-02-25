@@ -9,7 +9,7 @@ class Config:
     # --- KONFIGURASI MYSQL ---
     # Sesuaikan dengan setting MySQL Workbench Anda
     DB_USERNAME = 'root'         # Default XAMPP/MySQL biasanya 'root'
-    DB_PASSWORD = 'B1smillah#1'             # Default XAMPP biasanya kosong, sesuaikan jika ada password
+    DB_PASSWORD = 'passwd'             # Default XAMPP biasanya kosong, sesuaikan jika ada password
     DB_HOST = 'localhost'        # Server lokal
     DB_NAME = 'tanse_db'         # Nama database yang baru saja Anda buat
     

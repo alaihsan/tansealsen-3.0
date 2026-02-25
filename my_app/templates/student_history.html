@@ -93,12 +93,14 @@
             {% endif %}
 
             <!-- Area Klik Utama -->
+            {% set _ayat_text = '' %}{% for a in v.ayats %}{% if loop.first %}{% set _ayat_text = a.description %}{% else %}{% set _ayat_text = _ayat_text + ', ' + a.description %}{% endif %}{% endfor %}
             <div class="cursor-pointer" @click="openModal({
                 id: {{ v.id }},
                 date: '{{ v.tanggal_kejadian }}',
                 category: '{{ v.kategori_pelanggaran }}',
                 points: {{ v.points }},
                 pasal: '{{ v.pasal or '-' }}',
+                pasal_with_ayats: {{ ((v.pasal or '-') ~ ((' - ' ~ _ayat_text) if _ayat_text else ''))|tojson }},
                 description: `{{ v.description|replace('`', '\`')|replace('\n', '<br>') }}`,
                 reporter: '{{ v.di_input_oleh or '-' }}',
                 is_remitted: {{ 'true' if v.is_remitted else 'false' }},
@@ -143,7 +145,7 @@
                         
                         <!-- Judul Pasal -->
                         <h3 class="font-bold text-gray-900 text-lg mb-1 leading-snug group-hover:text-blue-600 transition-colors {{ 'line-through text-gray-400' if v.is_remitted }}">
-                            {{ v.pasal }}
+                            {{ v.pasal }}{% if v.ayats|length > 0 %} - {% for a in v.ayats %}{{ a.description }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}
                         </h3>
                         
                         <!-- Deskripsi Singkat -->
@@ -254,7 +256,7 @@
                                 <i class="far fa-clock text-[10px]"></i> <span x-text="activeViolation?.date"></span>
                              </span>
                         </div>
-                        <h3 class="font-bold text-gray-900 text-xl leading-snug pr-8" x-text="activeViolation?.pasal || 'Detail Pelanggaran'"></h3>
+                        <h3 class="font-bold text-gray-900 text-xl leading-snug pr-8" x-text="activeViolation?.pasal_with_ayats || activeViolation?.pasal || 'Detail Pelanggaran'"></h3>
                     </div>
                     
                     <!-- Tombol Close Desktop -->

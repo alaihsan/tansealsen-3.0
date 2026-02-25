@@ -66,12 +66,20 @@
                 <!-- DINAMIS: PASAL -->
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium mb-1">Pasal Pelanggaran</label>
-                    <select name="pasal" required class="w-full border rounded-lg px-3 py-2 bg-white">
+                    <select id="pasal_select" name="pasal_id" required class="w-full border rounded-lg px-3 py-2 bg-white">
                         <option value="">Pilih Pasal</option>
                         {% for rule in rules %}
-                            <option value="{{ rule.code }} - {{ rule.description }}">{{ rule.code }} - {{ rule.description }}</option>
+                            <option value="{{ rule.id }}">{{ rule.code }} - {{ rule.description }}</option>
                         {% endfor %}
                     </select>
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium mb-1">Ayat (opsional)</label>
+                    <select id="ayat_select" name="ayat_ids" multiple class="w-full border rounded-lg px-3 py-2 bg-white" disabled>
+                        <!-- populated dynamically -->
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">Pilih satu atau lebih ayat terkait (jika ada).</p>
                 </div>
 
                 <!-- DINAMIS: KATEGORI -->
@@ -158,6 +166,38 @@
                 });
         }
     });
+
+    // Muat ayat setelah memilih pasal
+    const pasalSelect = document.getElementById('pasal_select');
+    const ayatSelect = document.getElementById('ayat_select');
+    if (pasalSelect) {
+        pasalSelect.addEventListener('change', function() {
+            const ruleId = this.value;
+            ayatSelect.innerHTML = '';
+            ayatSelect.disabled = true;
+            if (!ruleId) return;
+            fetch(`/api/rules/${ruleId}/ayats`)
+                .then(r => r.json())
+                .then(data => {
+                    if (!data || data.length === 0) {
+                        ayatSelect.disabled = true;
+                        return;
+                    }
+                    data.forEach(a => {
+                        const opt = document.createElement('option');
+                        const label = a.number ? (a.number + ' - ' + a.description) : a.description;
+                        opt.value = a.id;
+                        opt.textContent = label;
+                        ayatSelect.appendChild(opt);
+                    });
+                    ayatSelect.disabled = false;
+                })
+                .catch(err => {
+                    console.error('Failed to load ayats', err);
+                    ayatSelect.disabled = true;
+                });
+        });
+    }
 
     document.addEventListener('alpine:init', () => {
         Alpine.data('fileUpload', () => ({
