@@ -196,10 +196,12 @@
                             <input type="text" name="number" placeholder="No. Ayat (opsional)" class="px-3 py-2 border border-gray-300 rounded text-sm">
                             
                             <div class="col-span-2 sm:col-span-1">
+                                <!-- PERBAIKAN: Maxlength mencegah user mengetik melebihi 1000 secara alami -->
                                 <textarea name="description" placeholder="Deskripsi Ayat (maks 1000 karakter)" required class="ayat-textarea w-full px-3 py-2 border border-gray-300 rounded text-sm resize-none transition-all duration-200" maxlength="1000" rows="2" style="min-height: 60px; max-height: 500px;"></textarea>
                                 <div class="flex justify-between items-center mt-2 gap-2">
                                     <span class="text-xs text-gray-600 whitespace-nowrap"><span class="ayat-counter">0</span>/1000 karakter</span>
-                                    <span class="text-xs font-semibold text-red-600 ayat-warning text-right" style="display: none;">⚠️ Ayat yang dimasukkan lebih dari 1000 karakter, harap disingkat</span>
+                                    <!-- PERBAIKAN: Kalimat Peringatan Lebih Jelas -->
+                                    <span class="text-xs font-semibold text-red-600 ayat-warning text-right" style="display: none;">⚠️ Karakter sudah mencapai 1000 karakter, harap kurangi</span>
                                 </div>
                             </div>
                             
@@ -365,7 +367,7 @@ function autoExpandTextarea(textarea) {
     textarea.style.height = Math.min(textarea.scrollHeight, 500) + 'px';
 }
 
-// Function to update character counter and warning
+// PERBAIKAN: Function to update character counter and warning
 function updateAyatCounter(textarea) {
     const form = textarea.closest('.ayat-form');
     if (!form) return;
@@ -383,10 +385,13 @@ function updateAyatCounter(textarea) {
     // Auto-expand textarea
     autoExpandTextarea(textarea);
     
-    // Handle warning and button state
+    // PERBAIKAN: Limit trigger at exactly 1000 characters
     if (charCount >= 1000) {
         // At or over limit
-        if (warning) warning.style.display = 'block';
+        if (warning) {
+            warning.textContent = '⚠️ Karakter sudah mencapai 1000 karakter, harap kurangi';
+            warning.style.display = 'block';
+        }
         if (submitBtn) submitBtn.disabled = true;
         textarea.classList.add('border-red-500', 'bg-red-50');
     } else {

@@ -529,6 +529,11 @@ def settings_ayats():
         number = request.form.get('number')
         description = request.form.get('description')
         if rule_id and description:
+            # PERBAIKAN: Validasi backend untuk mencegah error 500 jika karakter melebihi batas database
+            if len(description) >= 1000:
+                flash('Karakter sudah mencapai 1000 karakter, harap kurangi.', 'danger')
+                return redirect(url_for('main.settings', _anchor='tab-aturan'))
+                
             rule = ViolationRule.query.filter_by(id=rule_id, school_id=current_user.school_id).first()
             if rule:
                 db.session.add(Ayat(number=number, description=description, rule_id=rule.id))
