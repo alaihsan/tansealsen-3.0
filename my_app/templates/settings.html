@@ -1,7 +1,22 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="{ activeTab: 'sekolah' }">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" 
+     x-data="{ 
+         activeTab: window.location.hash ? window.location.hash.replace('#tab-', '') : (localStorage.getItem('settingsActiveTab') || 'sekolah'),
+         init() {
+             // Simpan tab aktif ke localStorage dan ubah URL secara dinamis tanpa reload
+             this.$watch('activeTab', val => {
+                 localStorage.setItem('settingsActiveTab', val);
+                 window.history.replaceState(null, null, '#tab-' + val);
+             });
+             
+             // Set default hash jika diakses tanpa hash
+             if (!window.location.hash) {
+                 window.history.replaceState(null, null, '#tab-' + this.activeTab);
+             }
+         }
+     }">
     
     <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
         <div>
@@ -336,31 +351,6 @@
 {% endblock %}
 
 <script>
-// Initialize tab from URL hash
-window.addEventListener('load', function() {
-    const hash = window.location.hash;
-    if (hash.startsWith('#tab-')) {
-        const tabName = hash.replace('#tab-', '');
-        setTimeout(() => {
-            // Find all tab buttons (they have border-b-2 class and are direct children of flex container)
-            const tabContainer = document.querySelector('div.flex.border-b.border-gray-200.min-w-max');
-            if (tabContainer) {
-                const buttons = tabContainer.querySelectorAll('button');
-                buttons.forEach(btn => {
-                    const text = btn.textContent.toLowerCase();
-                    if ((tabName === 'aturan' && text.includes('pasal')) || 
-                        (tabName === 'sekolah' && text.includes('profil')) ||
-                        (tabName === 'anggota' && text.includes('anggota')) ||
-                        (tabName === 'kategori' && text.includes('kategori')) ||
-                        (tabName === 'backup' && text.includes('backup'))) {
-                        btn.click();
-                    }
-                });
-            }
-        }, 100);
-    }
-});
-
 // Function to auto-expand textarea
 function autoExpandTextarea(textarea) {
     textarea.style.height = 'auto';
@@ -431,26 +421,4 @@ if (document.readyState === 'loading') {
 
 // Also initialize after a delay to catch dynamically added textareas
 setTimeout(initializeAyatTextareas, 500);
-
-// Try to switch tab based on hash after form submission
-setTimeout(() => {
-    const hash = window.location.hash;
-    if (hash.startsWith('#tab-')) {
-        const tabName = hash.replace('#tab-', '');
-        const tabContainer = document.querySelector('div.flex.border-b.border-gray-200.min-w-max');
-        if (tabContainer) {
-            const buttons = tabContainer.querySelectorAll('button');
-            buttons.forEach(btn => {
-                const text = btn.textContent.toLowerCase();
-                if ((tabName === 'aturan' && text.includes('pasal')) || 
-                    (tabName === 'sekolah' && text.includes('profil')) ||
-                    (tabName === 'anggota' && text.includes('anggota')) ||
-                    (tabName === 'kategori' && text.includes('kategori')) ||
-                    (tabName === 'backup' && text.includes('backup'))) {
-                    btn.click();
-                }
-            });
-        }
-    }
-}, 300);
 </script>
