@@ -2,89 +2,139 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Laporan Kelas {{ classroom.name }}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan Rekapitulasi Kelas - {{ classroom.name }}</title>
     <style>
-        body { font-family: 'Arial', sans-serif; font-size: 12px; }
-        @media print {
-            @page { size: A4 landscape; margin: 10mm; }
-            body { -webkit-print-color-adjust: exact; }
-            .no-print { display: none; }
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            color: #333;
+            margin: 20px;
         }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid black; padding: 6px; vertical-align: top; }
-        th { background-color: #f3f4f6; }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            margin: 0 0 5px;
+            font-size: 20px;
+            text-transform: uppercase;
+        }
+        .header p {
+            margin: 0;
+            font-size: 14px;
+        }
+        .info-section {
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        .info-section strong {
+            display: inline-block;
+            width: 100px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+            text-align: center;
+        }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .remisi-text {
+            color: #2e7d32;
+            font-style: italic;
+            font-weight: bold;
+            font-size: 11px;
+            display: block;
+            margin-top: 4px;
+        }
+        .remisi-link {
+            font-size: 10px;
+            color: blue;
+            text-decoration: underline;
+            display: block;
+            margin-top: 2px;
+        }
+        
+        @media print {
+            body { margin: 0; }
+            .no-print { display: none; }
+            table { font-size: 11px; }
+        }
     </style>
 </head>
-<body class="p-4" onload="window.print()">
-
-    <!-- HEADER -->
-    <div class="text-center mb-6 border-b-2 border-black pb-4">
-        <h2 class="text-lg font-bold uppercase">{{ school.name }}</h2>
-        <h1 class="text-xl font-black uppercase mt-1">LAPORAN PELANGGARAN KELAS {{ classroom.name }}</h1>
-        <p class="text-gray-600">Dicetak pada: <script>document.write(new Date().toLocaleDateString('id-ID'))</script></p>
+<body onload="window.print()">
+    <div class="no-print" style="text-align: right; margin-bottom: 20px;">
+        <button onclick="window.print()" style="padding: 8px 16px; cursor: pointer;">Cetak Laporan</button>
     </div>
 
-    <!-- TABEL -->
+    <div class="header">
+        <h1>REKAPITULASI PELANGGARAN SISWA</h1>
+        <p>{{ school.name }}</p>
+    </div>
+
+    <div class="info-section">
+        <p><strong>Kelas</strong> : {{ classroom.name }}</p>
+        <p><strong>Tanggal Cetak</strong> : {{ range(1, 32) | random }} {{ ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'] | random }} 2024</p>
+    </div>
+
     <table>
         <thead>
             <tr>
-                <th class="w-10 text-center">No</th>
-                <th class="w-48 text-left">Nama Siswa</th>
-                <th class="w-32 text-left">Tanggal</th>
-                <th class="w-48 text-left">Pasal / Kategori</th>
-                <th class="text-left">Deskripsi Pelanggaran</th>
-                <th class="w-24 text-center">Status Remisi</th>
-                <th class="w-32 text-center">Dokumentasi</th>
+                <th width="5%">No</th>
+                <th width="12%">Tanggal</th>
+                <th width="15%">Nama Siswa</th>
+                <th width="10%">ID Murid</th>
+                <th width="20%">Pasal & Kategori</th>
+                <!-- Lebar kolom Poin (5%) dipindahkan ke Keterangan agar lebih rapi -->
+                <th width="30%">Keterangan</th>
+                <th width="8%">Petugas</th>
             </tr>
         </thead>
         <tbody>
             {% for v in violations %}
             <tr>
                 <td class="text-center">{{ loop.index }}</td>
-                <td class="font-bold">{{ v.student.name }}</td>
-                <td>{{ v.tanggal_kejadian }}</td>
+                <td class="text-center">{{ v.date_posted.strftime('%d/%m/%Y') }}</td>
+                <td>{{ v.student.name }}</td>
+                <td class="text-center">{{ v.student.nis }}</td>
                 <td>
-                    <div class="font-bold">{{ v.pasal or '-' }}{% if v.ayats|length > 0 %} - {% for a in v.ayats %}{{ a.description }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}</div>
-                    <!-- Poin disembunyikan sesuai permintaan -->
-                    <!-- <div class="text-xs text-gray-500">{{ v.kategori_pelanggaran }} ({{ v.points }})</div> -->
-                    <div class="text-xs text-gray-500">{{ v.kategori_pelanggaran }}</div>
+                    <strong>{{ v.pasal or 'Umum' }}</strong><br>
+                    <span style="font-size: 10px;">({{ v.kategori_pelanggaran }})</span>
                 </td>
-                <td>{{ v.description }}</td>
-                <td class="text-center">
+                <td>
+                    {{ v.description }}
+                    
                     {% if v.is_remitted %}
-                        <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs border border-green-200 block">REMISI</span>
-                    {% else %}
-                        <span class="text-gray-500 text-xs">BELUM</span>
-                    {% endif %}
-                </td>
-                <td class="text-center">
-                    {% if v.photos|length > 0 %}
-                        <div class="flex flex-wrap gap-1 justify-center">
-                            {% for photo in v.photos[:2] %}
-                                <img src="{{ url_for('static', filename='uploads/' + photo.filename) }}" class="w-10 h-10 object-cover border border-gray-300">
-                            {% endfor %}
-                            {% if v.photos|length > 2 %}
-                                <span class="text-xs text-gray-500 block w-full">+{{ v.photos|length - 2 }} lainnya</span>
+                        <span class="remisi-text">(Diremisi: {{ v.remission_reason }})</span>
+                        
+                        {% for photo in v.photos %}
+                            {% if photo.filename.startswith('remisi_') %}
+                                <a href="{{ url_for('static', filename='uploads/' + photo.filename) }}" target="_blank" class="remisi-link">[Lihat Bukti Remisi]</a>
                             {% endif %}
-                        </div>
-                    {% else %}
-                        -
+                        {% endfor %}
                     {% endif %}
                 </td>
+                <td class="text-center">{{ v.di_input_oleh or '-' }}</td>
             </tr>
             {% else %}
             <tr>
-                <td colspan="7" class="text-center py-8 text-gray-500 italic">Tidak ada data pelanggaran di kelas ini.</td>
+                <!-- Colspan diubah menjadi 7 sesuai jumlah header kolom terbaru -->
+                <td colspan="7" class="text-center" style="padding: 20px;">Belum ada data pelanggaran di kelas ini.</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
-
-    <div class="mt-8 text-right px-8">
-        <p class="mb-16">Guru BK / Kesiswaan</p>
-        <p class="font-bold">( ........................................... )</p>
-    </div>
 
 </body>
 </html>

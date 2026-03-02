@@ -1,225 +1,294 @@
 {% extends "base.html" %}
 
-{% block title %}Tambah Pelanggaran Baru{% endblock %}
-
 {% block content %}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-
-<div class="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8 w-full">
-    <div class="mb-6 flex justify-between items-center">
-        <h1 class="text-2xl font-bold text-gray-900">Tambah Pelanggaran</h1>
-        <a href="{{ url_for('main.home') }}" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Kembali</a>
+<!-- Preloader: Menutupi lag saat dekripsi data awal -->
+<div id="page-loader" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-50 bg-opacity-90 backdrop-blur-sm transition-opacity duration-300">
+    <div class="flex flex-col items-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-3"></div>
+        <p class="text-blue-600 font-semibold text-sm animate-pulse">Menyiapkan form terenkripsi...</p>
     </div>
-
-    <form method="POST" action="{{ url_for('main.add_violation') }}" enctype="multipart/form-data" class="space-y-6">
-        
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 class="text-lg font-semibold mb-4">Informasi Umum</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
-                <!-- UPDATE: Split Tanggal dan Jam -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium mb-1">Tanggal</label>
-                        <input type="text" id="tanggal_kejadian" name="tanggal_kejadian" required class="w-full border rounded-lg px-3 py-2 bg-white" placeholder="Pilih tanggal">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium mb-1">Jam</label>
-                        <!-- Default jam saat ini via JS nanti -->
-                        <input type="time" id="jam_kejadian" name="jam_kejadian" required class="w-full border rounded-lg px-3 py-2 bg-white">
-                    </div>
-                </div>
-
-                <!-- DINAMIS: DI INPUT OLEH -->
-                <div>
-                    <label class="block text-sm font-medium mb-1">Di Input Oleh</label>
-                    <select name="di_input_oleh" required class="w-full border rounded-lg px-3 py-2 bg-white">
-                        <option value="">Pilih Anggota</option>
-                        {% for staff in staff_members %}
-                            <option value="{{ staff.full_name or staff.username }}">{{ staff.full_name or staff.username }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium mb-1">Kelas</label>
-                    <select id="kelas" name="kelas" required class="w-full border rounded-lg px-3 py-2 bg-white">
-                        <option value="">Pilih Kelas</option>
-                        {% for cls in classes %}
-                            <option value="{{ cls.name }}">{{ cls.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium mb-1">Nama Siswa</label>
-                    <select id="nama_murid" name="nama_murid" required disabled class="w-full border rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed">
-                        <option value="">Pilih Kelas Dulu</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 class="text-lg font-semibold mb-4">Detail Pelanggaran</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- DINAMIS: PASAL -->
-                <div class="md:col-span-2">
-                    <label class="block text-sm font-medium mb-1">Pasal Pelanggaran</label>
-                    <select id="pasal_select" name="pasal_id" required class="w-full border rounded-lg px-3 py-2 bg-white">
-                        <option value="">Pilih Pasal</option>
-                        {% for rule in rules %}
-                            <option value="{{ rule.id }}">{{ rule.code }} - {{ rule.description }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="md:col-span-2">
-                    <label class="block text-sm font-medium mb-1">Ayat (opsional)</label>
-                    <select id="ayat_select" name="ayat_ids" multiple class="w-full border rounded-lg px-3 py-2 bg-white" disabled>
-                        <!-- populated dynamically -->
-                    </select>
-                    <p class="text-xs text-gray-500 mt-1">Pilih satu atau lebih ayat terkait (jika ada).</p>
-                </div>
-
-                <!-- DINAMIS: KATEGORI -->
-                <div>
-                    <label class="block text-sm font-medium mb-1">Kategori</label>
-                    <select name="kategori_id" required class="w-full border rounded-lg px-3 py-2 bg-white">
-                        <option value="">Pilih Kategori</option>
-                        {% for cat in categories %}
-                            <option value="{{ cat.id }}">{{ cat.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                
-                <div class="md:col-span-2">
-                    <label class="block text-sm font-medium mb-1">Deskripsi</label>
-                    <textarea name="deskripsi" rows="3" class="w-full border rounded-lg px-3 py-2"></textarea>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" x-data="fileUpload()">
-            <label class="block text-sm font-medium mb-2">Bukti Pendukung (Maksimal 10 Foto)</label>
-            
-            <div class="flex items-center justify-center w-full">
-                <label for="dropzone-file" class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-                    <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                        <i class="fas fa-cloud-upload-alt text-2xl text-gray-500 mb-2"></i>
-                        <p class="text-sm text-gray-500"><span class="font-semibold">Klik untuk upload</span> atau drag and drop</p>
-                        <p class="text-xs text-gray-500">PNG, JPG (Maks. 10 file)</p>
-                    </div>
-                    <input id="dropzone-file" type="file" name="bukti_file" multiple accept="image/*" class="hidden" @change="handleFiles" />
-                </label>
-            </div>
-
-            <div class="mt-4 grid grid-cols-2 md:grid-cols-5 gap-4" x-show="files.length > 0">
-                <template x-for="(file, index) in files" :key="index">
-                    <div class="relative group">
-                        <img :src="file.url" class="h-24 w-full object-cover rounded-lg border">
-                        <button type="button" @click="removeFile(index)" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 w-6 h-6 flex items-center justify-center text-xs shadow hover:bg-red-600">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                </template>
-            </div>
-            <p x-show="files.length > 10" class="text-red-500 text-sm mt-2 font-bold">Maksimal 10 foto. Mohon kurangi pilihan Anda.</p>
-        </div>
-
-        <div class="flex justify-end gap-4">
-            <button type="reset" class="px-6 py-2 border rounded-lg hover:bg-gray-50">Reset</button>
-            <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Simpan Data</button>
-        </div>
-    </form>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="https://npmcdn.com/flatpickr/dist/l10n/id.js"></script>
-<script>
-    flatpickr("#tanggal_kejadian", { locale: "id", dateFormat: "d/m/Y", defaultDate: "today" });
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8" 
+     x-data="violationForm()" 
+     x-init="initForm()" 
+     x-cloak>
     
-    // Set default jam ke waktu sekarang
-    const now = new Date();
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    document.getElementById('jam_kejadian').value = `${hours}:${minutes}`;
+    <div class="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden relative">
+        <!-- Loading Overlay saat Submit -->
+        <div x-show="isSubmitting" 
+             class="absolute inset-0 z-40 flex items-center justify-center bg-white/80 backdrop-blur-sm transition-opacity">
+            <div class="bg-white p-5 rounded-2xl shadow-2xl border border-gray-100 flex flex-col items-center">
+                <div class="animate-spin rounded-full h-10 w-10 border-4 border-blue-100 border-t-blue-600 mb-3"></div>
+                <p class="text-gray-800 font-bold text-sm">Menyimpan Data...</p>
+                <p class="text-xs text-gray-500 mt-1">Sistem sedang mengenkripsi & mencatat aman.</p>
+            </div>
+        </div>
 
-    document.getElementById('kelas').addEventListener('change', function() {
-        const className = this.value;
-        const studentSelect = document.getElementById('nama_murid');
-        studentSelect.innerHTML = '<option value="">Loading...</option>';
-        studentSelect.disabled = true;
-        
-        if (className) {
-            fetch(`/api/students/${encodeURIComponent(className)}`)
-                .then(r => r.json())
-                .then(data => {
-                    studentSelect.innerHTML = '<option value="">Pilih Siswa</option>';
-                    data.forEach(name => {
-                        const opt = document.createElement('option');
-                        opt.value = name; opt.textContent = name;
-                        studentSelect.appendChild(opt);
-                    });
-                    studentSelect.disabled = false;
-                    studentSelect.classList.remove('bg-gray-100', 'cursor-not-allowed');
-                });
+        <div class="bg-blue-600 px-6 py-5 border-b border-blue-700 flex items-center gap-3">
+            <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-white">
+                <i class="fas fa-clipboard-list text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold text-white tracking-wide">Input Pelanggaran Baru</h1>
+                <p class="text-blue-100 text-xs mt-0.5">Isi detail pelanggaran murid dengan akurat</p>
+            </div>
+        </div>
+
+        <form action="{{ url_for('main.add_violation') }}" method="POST" enctype="multipart/form-data" 
+              @submit="isSubmitting = true" class="p-6 sm:p-8 space-y-6">
+            
+            <!-- SECTION 1: Data Murid -->
+            <div class="bg-gray-50 p-5 rounded-xl border border-gray-200">
+                <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4 border-b border-gray-200 pb-2"><i class="fas fa-user-graduate mr-2 text-blue-500"></i>Data Murid</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <!-- Dropdown Kelas -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Pilih Kelas</label>
+                        <select name="kelas" x-model="selectedClass" @change="fetchStudents()" required 
+                                class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all cursor-pointer">
+                            <option value="" disabled>-- Pilih Kelas --</option>
+                            {% for c in classes %}
+                                <option value="{{ c.name }}">{{ c.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Dropdown Murid (Load Dinamis + Cache) -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5 flex justify-between">
+                            Nama Murid
+                            <span x-show="loadingStudents" class="text-xs text-blue-500 animate-pulse"><i class="fas fa-spinner fa-spin mr-1"></i>Mendekripsi...</span>
+                        </label>
+                        <select name="nama_murid" required :disabled="students.length === 0 || loadingStudents"
+                                class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all disabled:bg-gray-100 disabled:cursor-not-allowed">
+                            <option value="">-- Pilih Murid --</option>
+                            <template x-for="student in students" :key="student">
+                                <option :value="student" x-text="student"></option>
+                            </template>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 2: Detail Pelanggaran -->
+            <div class="bg-gray-50 p-5 rounded-xl border border-gray-200">
+                <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4 border-b border-gray-200 pb-2"><i class="fas fa-gavel mr-2 text-red-500"></i>Aturan Pelanggaran</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Kategori</label>
+                        <select name="kategori_id" required 
+                                class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm cursor-pointer">
+                            <option value="" disabled selected>-- Pilih Kategori --</option>
+                            {% for cat in categories %}
+                                <option value="{{ cat.id }}">{{ cat.name }}
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Dropdown Pasal -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Pasal Terkait</label>
+                        <select name="pasal_id" x-model="selectedPasal" @change="fetchAyats()" required 
+                                class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm cursor-pointer">
+                            <option value="" disabled>-- Pilih Pasal --</option>
+                            {% for rule in rules %}
+                                <option value="{{ rule.id }}">{{ rule.code }} - {{ rule.description[:30] }}...</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Pilihan Ayat Dinamis -->
+                <div x-show="selectedPasal !== ''" x-collapse>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
+                        <span>Pilih Ayat Spesifik (Opsional)</span>
+                        <span x-show="loadingAyats" class="text-xs text-blue-500 animate-pulse"><i class="fas fa-spinner fa-spin mr-1"></i>Memuat...</span>
+                    </label>
+                    <div class="bg-white border border-gray-200 rounded-lg p-3 max-h-48 overflow-y-auto shadow-inner">
+                        <template x-if="ayats.length === 0 && !loadingAyats">
+                            <p class="text-xs text-gray-400 italic">Tidak ada ayat khusus untuk pasal ini.</p>
+                        </template>
+                        <div class="space-y-2">
+                            <template x-for="ayat in ayats" :key="ayat.id">
+                                <label class="flex items-start gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer transition-colors border border-transparent hover:border-gray-200">
+                                    <input type="checkbox" name="ayat_ids" :value="ayat.id" class="mt-0.5 text-blue-600 focus:ring-blue-500 rounded border-gray-300">
+                                    <span class="text-sm text-gray-700 leading-tight">
+                                        <strong x-show="ayat.number" x-text="ayat.number + ' - '"></strong>
+                                        <span x-text="ayat.description"></span>
+                                    </span>
+                                </label>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 3: Keterangan & Bukti -->
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">Deskripsi Lengkap Kejadian</label>
+                    <textarea name="deskripsi" required rows="3" placeholder="Ceritakan detail kronologi pelanggaran..."
+                              class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm resize-none"></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Tanggal Kejadian</label>
+                        <!-- Formatted hidden input untuk backend, date input asli untuk frontend -->
+                        <input type="hidden" name="tanggal_kejadian" :value="formattedDate">
+                        <input type="date" x-model="rawDate" @change="formatDate" required 
+                               class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Jam Kejadian (WIB)</label>
+                        <input type="time" name="jam_kejadian" required 
+                               class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm cursor-pointer">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Lampirkan Foto Bukti (Bisa Lebih Dari 1)</label>
+                        <div class="relative w-full">
+                            <input type="file" name="bukti_file" accept="image/*" multiple 
+                                   class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-300 rounded-lg bg-white shadow-sm cursor-pointer transition-colors">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Dicatat Oleh</label>
+                        <select name="di_input_oleh" required 
+                                class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm cursor-pointer">
+                            {% for staff in staff_members %}
+                                <option value="{{ staff.full_name or staff.username }}" 
+                                    {% if current_user.id == staff.id %}selected{% endif %}>
+                                    {{ staff.full_name or staff.username }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-6 border-t border-gray-200 flex justify-end gap-3">
+                <a href="{{ url_for('main.home') }}" class="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors">Batal</a>
+                <button type="submit" class="px-8 py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-md transition-all active:scale-95 flex items-center justify-center min-w-[140px]">
+                    <span x-show="!isSubmitting"><i class="fas fa-save mr-2"></i> Simpan</span>
+                    <span x-show="isSubmitting"><i class="fas fa-spinner fa-spin"></i></span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Hilangkan Preloader saat DOM sudah siap
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        const loader = document.getElementById('page-loader');
+        if (loader) {
+            loader.style.opacity = '0';
+            setTimeout(() => loader.remove(), 300);
         }
-    });
+    }, 150); // Memberi jeda kecil agar proses enkripsi/render selesai
+});
 
-    // Muat ayat setelah memilih pasal
-    const pasalSelect = document.getElementById('pasal_select');
-    const ayatSelect = document.getElementById('ayat_select');
-    if (pasalSelect) {
-        pasalSelect.addEventListener('change', function() {
-            const ruleId = this.value;
-            ayatSelect.innerHTML = '';
-            ayatSelect.disabled = true;
-            if (!ruleId) return;
-            fetch(`/api/rules/${ruleId}/ayats`)
-                .then(r => r.json())
-                .then(data => {
-                    if (!data || data.length === 0) {
-                        ayatSelect.disabled = true;
-                        return;
-                    }
-                    data.forEach(a => {
-                        const opt = document.createElement('option');
-                        const label = a.number ? (a.number + ' - ' + a.description) : a.description;
-                        opt.value = a.id;
-                        opt.textContent = label;
-                        ayatSelect.appendChild(opt);
-                    });
-                    ayatSelect.disabled = false;
-                })
-                .catch(err => {
-                    console.error('Failed to load ayats', err);
-                    ayatSelect.disabled = true;
-                });
-        });
-    }
+document.addEventListener('alpine:init', () => {
+    Alpine.data('violationForm', () => ({
+        selectedClass: '',
+        students: [],
+        loadingStudents: false,
+        
+        selectedPasal: '',
+        ayats: [],
+        loadingAyats: false,
 
-    document.addEventListener('alpine:init', () => {
-        Alpine.data('fileUpload', () => ({
-            files: [],
-            handleFiles(e) {
-                const selectedFiles = Array.from(e.target.files);
-                this.files = [];
-                selectedFiles.forEach(file => {
-                    if (file.type.startsWith('image/')) {
-                        const reader = new FileReader();
-                        reader.onload = (e) => {
-                            this.files.push({ file: file, url: e.target.result });
-                        };
-                        reader.readAsDataURL(file);
-                    }
-                });
-            },
-            removeFile(index) {
-                this.files.splice(index, 1);
-                if (this.files.length === 0) document.getElementById('dropzone-file').value = '';
+        isSubmitting: false,
+        
+        // Handling Konversi Tanggal agar sesuai format backend DD/MM/YYYY
+        rawDate: new Date().toISOString().split('T')[0], 
+        formattedDate: '',
+
+        initForm() {
+            this.formatDate();
+        },
+
+        formatDate() {
+            if (this.rawDate) {
+                const parts = this.rawDate.split('-'); // YYYY-MM-DD
+                this.formattedDate = `${parts[2]}/${parts[1]}/${parts[0]}`; // DD/MM/YYYY
             }
-        }));
-    });
+        },
+
+        // FUNGSI MEMUAT MURID DENGAN CACHE (Sangat Cepat)
+        async fetchStudents() {
+            if (!this.selectedClass) {
+                this.students = [];
+                return;
+            }
+            
+            // Cek Cache di SessionStorage
+            const cacheKey = `students_cache_${this.selectedClass}`;
+            const cachedData = sessionStorage.getItem(cacheKey);
+            
+            if (cachedData) {
+                this.students = JSON.parse(cachedData);
+                return; // Langsung tampilkan tanpa hit server!
+            }
+
+            this.loadingStudents = true;
+            try {
+                const response = await fetch(`/api/students/${encodeURIComponent(this.selectedClass)}`);
+                const data = await response.json();
+                this.students = data;
+                
+                // Simpan ke Cache
+                sessionStorage.setItem(cacheKey, JSON.stringify(data));
+            } catch (error) {
+                console.error('Gagal mengambil data murid:', error);
+            } finally {
+                this.loadingStudents = false;
+            }
+        },
+
+        // FUNGSI MEMUAT AYAT DENGAN CACHE (Sangat Cepat)
+        async fetchAyats() {
+            if (!this.selectedPasal) {
+                this.ayats = [];
+                return;
+            }
+
+            // Cek Cache
+            const cacheKey = `ayats_cache_${this.selectedPasal}`;
+            const cachedData = sessionStorage.getItem(cacheKey);
+
+            if (cachedData) {
+                this.ayats = JSON.parse(cachedData);
+                return; // Langsung tampilkan
+            }
+
+            this.loadingAyats = true;
+            try {
+                const response = await fetch(`/api/rules/${this.selectedPasal}/ayats`);
+                const data = await response.json();
+                this.ayats = data;
+                
+                // Simpan ke Cache
+                sessionStorage.setItem(cacheKey, JSON.stringify(data));
+            } catch (error) {
+                console.error('Gagal mengambil data ayat:', error);
+            } finally {
+                this.loadingAyats = false;
+            }
+        }
+    }));
+});
 </script>
+
+<style>
+/* Utilities untuk menyembunyikan elemen sebelum Alpine JS aktif (menghindari layout patah-patah) */
+[x-cloak] { display: none !important; }
+</style>
 {% endblock %}

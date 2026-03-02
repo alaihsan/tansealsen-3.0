@@ -2,182 +2,249 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Bukti Pelanggaran - {{ student.name }}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surat Keterangan Pelanggaran - {{ student.name }}</title>
     <style>
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background: #f3f4f6;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            line-height: 1.5;
+            color: #000;
+            background: #fff;
+            padding: 40px;
+            max-width: 800px;
+            margin: auto;
         }
-        .sheet {
-            background: white;
-            width: 210mm;
-            min-height: 297mm;
-            padding: 20mm;
-            margin: 20px auto;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            position: relative;
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #000;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
         }
+        .header img {
+            max-height: 80px;
+        }
+        .header-text h1 {
+            margin: 0;
+            font-size: 24px;
+            text-transform: uppercase;
+        }
+        .header-text p {
+            margin: 5px 0 0;
+            font-size: 14px;
+        }
+        .title {
+            text-align: center;
+            text-decoration: underline;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .info-table {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .info-table td {
+            padding: 5px;
+            vertical-align: top;
+        }
+        .info-table td:first-child {
+            width: 30%;
+            font-weight: bold;
+        }
+        .info-table td:nth-child(2) {
+            width: 2%;
+        }
+        .box {
+            border: 1px solid #000;
+            padding: 15px;
+            margin-top: 20px;
+            background-color: #fafafa;
+        }
+        .photos {
+            margin-top: 20px;
+        }
+        .photos img {
+            max-width: 200px;
+            max-height: 200px;
+            border: 1px solid #ccc;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            object-fit: cover;
+        }
+        .footer {
+            margin-top: 50px;
+            width: 100%;
+            display: table;
+        }
+        .signature-box {
+            display: table-cell;
+            width: 50%;
+            text-align: center;
+        }
+        .signature-space {
+            height: 80px;
+        }
+        
+        /* Gaya Khusus Kotak Remisi */
+        .remisi-box {
+            margin-top: 20px;
+            padding: 15px;
+            border: 2px dashed #4CAF50;
+            background-color: #f9fff9;
+            border-radius: 4px;
+        }
+        .remisi-box h4 {
+            color: #2e7d32;
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
         @media print {
-            body { background: none; margin: 0; }
-            .sheet { width: 100%; height: auto; margin: 0; padding: 0; box-shadow: none; }
-            .no-print { display: none !important; }
+            body { padding: 0; }
+            .no-print { display: none; }
         }
-        .border-b-double { border-bottom-width: 3px; border-bottom-style: double; }
     </style>
 </head>
-<body>
-
-    <!-- Tombol Print Floating (Hanya tampil di layar) -->
-    <div class="fixed top-4 right-4 no-print flex gap-2">
-        <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow-lg flex items-center transition-colors">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-            Cetak Dokumen
-        </button>
-        <button onclick="window.close()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded shadow-lg transition-colors">
-            Tutup
-        </button>
+<body onload="window.print()">
+    <div class="no-print" style="text-align: right; margin-bottom: 20px;">
+        <button onclick="window.print()" style="padding: 10px 20px; cursor: pointer;">Cetak Laporan</button>
     </div>
 
-    <div class="sheet">
-        <!-- KOP SURAT -->
-        <div class="flex items-center gap-6 border-b-2 border-black pb-4 mb-6">
-            {% if school.logo %}
-                <img src="{{ url_for('static', filename='uploads/' + school.logo) }}" class="h-24 w-24 object-contain">
-            {% else %}
-                <div class="h-24 w-24 bg-gray-100 flex items-center justify-center text-gray-400 border border-gray-300 rounded">
-                    <span class="text-xs text-center">No Logo</span>
-                </div>
+    <div class="header">
+        {% if school.logo %}
+            <img src="{{ url_for('static', filename='uploads/' + school.logo) }}" alt="Logo Sekolah">
+        {% endif %}
+        <div class="header-text">
+            <h1>{{ school.name }}</h1>
+            <p>{{ school.address }}</p>
+        </div>
+    </div>
+
+    <div class="title">Laporan Bukti Pelanggaran Siswa</div>
+
+    <table class="info-table">
+        <tr>
+            <td>Nama Siswa</td>
+            <td>:</td>
+            <td>{{ student.name }}</td>
+        </tr>
+        <tr>
+            <td>ID Murid</td>
+            <td>:</td>
+            <td>{{ student.nis }}</td>
+        </tr>
+        <tr>
+            <td>Kelas</td>
+            <td>:</td>
+            <td>{{ student.classroom.name if student.classroom else '-' }}</td>
+        </tr>
+    </table>
+
+    <div class="box">
+        <h3 style="margin-top:0;">Detail Pelanggaran</h3>
+        <table class="info-table">
+            <tr>
+                <td>Tanggal & Waktu</td>
+                <td>:</td>
+                <td>{{ violation.date_posted.strftime('%d %B %Y, %H:%M') }} WIB</td>
+            </tr>
+            <tr>
+                <td>Kategori</td>
+                <td>:</td>
+                <td>{{ violation.kategori_pelanggaran }}</td>
+            </tr>
+            <tr>
+                <td>Pasal Terkait</td>
+                <td>:</td>
+                <td>{{ violation.pasal or '-' }}</td>
+            </tr>
+            <!-- Poin Pelanggaran disembunyikan -->
+            <tr>
+                <td>Keterangan</td>
+                <td>:</td>
+                <td>{{ violation.description }}</td>
+            </tr>
+            <tr>
+                <td>Dicatat Oleh</td>
+                <td>:</td>
+                <td>{{ violation.di_input_oleh or 'Admin' }}</td>
+            </tr>
+        </table>
+        
+        {% if violation.ayats|length > 0 %}
+        <div style="margin-top: 10px; font-size: 14px;">
+            <strong>Isi Ayat Pasal:</strong>
+            <ul style="margin-top: 5px; margin-bottom: 0;">
+                {% for a in violation.ayats %}
+                <li>{{ a.number + ' - ' if a.number else '' }}{{ a.description }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Foto Pelanggaran -->
+    {% set pelanggaran_photos = [] %}
+    {% for photo in violation.photos %}
+        {% if not photo.filename.startswith('remisi_') %}
+            {% set _ = pelanggaran_photos.append(photo) %}
+        {% endif %}
+    {% endfor %}
+
+    {% if pelanggaran_photos|length > 0 %}
+    <div class="photos">
+        <p style="font-weight: bold; margin-bottom: 5px;">Lampiran Bukti Pelanggaran:</p>
+        <div>
+            {% for photo in pelanggaran_photos %}
+                <img src="{{ url_for('static', filename='uploads/' + photo.filename) }}" alt="Bukti Pelanggaran">
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Kotak Info Remisi Jika Ada -->
+    {% if violation.is_remitted %}
+    <div class="remisi-box">
+        <h4><i class="fas fa-check"></i> Status: Telah Diremisi (Digugurkan)</h4>
+        <p style="margin-bottom: 5px; font-size: 14px;"><strong>Alasan Remisi:</strong> {{ violation.remission_reason }}</p>
+        <p style="margin-bottom: 5px; font-size: 14px;"><strong>Tanggal Remisi:</strong> {{ violation.remission_date.strftime('%d %B %Y') if violation.remission_date else '-' }}</p>
+        
+        {% set remisi_photos = [] %}
+        {% for photo in violation.photos %}
+            {% if photo.filename.startswith('remisi_') %}
+                {% set _ = remisi_photos.append(photo) %}
             {% endif %}
-            <div class="flex-grow text-center">
-                <h1 class="text-2xl font-bold uppercase tracking-wider text-black">{{ school.name }}</h1>
-                {% if school.address %}
-                <p class="text-sm text-gray-600 mt-1">{{ school.address }}</p>
-                {% endif %}
-                <p class="text-xs text-gray-500 mt-1">Laporan Kedisiplinan Siswa</p>
-            </div>
-            <!-- Spacer untuk keseimbangan jika logo ada -->
-            <div class="w-24"></div>
-        </div>
-
-        <!-- JUDUL -->
-        <div class="text-center mb-8">
-            <h2 class="text-xl font-bold underline decoration-2 underline-offset-4">BERITA ACARA PELANGGARAN</h2>
-            <p class="text-sm text-gray-500 mt-2">Nomor: {{ violation.id }}/BK/{{ violation.date_posted.strftime('%m/%Y') }}</p>
-        </div>
-
-        <!-- INFO SISWA -->
-        <div class="grid grid-cols-2 gap-8 mb-8">
+        {% endfor %}
+        
+        {% if remisi_photos|length > 0 %}
+        <div style="margin-top: 15px;">
+            <p style="margin-bottom: 5px; font-weight: bold; font-size: 14px; color: #2e7d32;">Lampiran Bukti Remisi:</p>
             <div>
-                <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2 border-b pb-1">Data Siswa</h3>
-                <table class="w-full text-sm">
-                    <tr>
-                        <td class="py-1 w-24 text-gray-600">Nama</td>
-                        <td class="py-1 font-bold">: {{ student.name }}</td>
-                    </tr>
-                    <tr>
-                        <td class="py-1 text-gray-600">Kelas</td>
-                        <td class="py-1">: {{ student.classroom.name }}</td>
-                    </tr>
-                </table>
-            </div>
-            <div>
-                <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2 border-b pb-1">Data Kejadian</h3>
-                <table class="w-full text-sm">
-                    <tr>
-                        <td class="py-1 w-24 text-gray-600">Tanggal</td>
-                        <td class="py-1">: {{ violation.tanggal_kejadian }}</td>
-                    </tr>
-                    <tr>
-                        <td class="py-1 text-gray-600">Status</td>
-                        <td class="py-1">
-                            : {% if violation.is_remitted %}
-                                <span class="font-bold text-green-600">DIREMISI / SELESAI</span>
-                              {% else %}
-                                <span class="font-bold text-red-600">AKTIF</span>
-                              {% endif %}
-                        </td>
-                    </tr>
-                </table>
-            </div>
-        </div>
-
-        <!-- DETAIL PELANGGARAN -->
-        <div class="mb-8 border border-gray-200 rounded-lg overflow-hidden">
-            <div class="bg-gray-50 px-4 py-2 border-b border-gray-200 flex justify-between items-center">
-                <span class="font-bold text-sm text-gray-700">Detail Pelanggaran</span>
-                <span class="text-xs px-2 py-1 rounded bg-white border border-gray-200 font-medium">
-                    Kategori: {{ violation.kategori_pelanggaran }}
-                </span>
-            </div>
-            <div class="p-4">
-                <div class="mb-4">
-                    <p class="text-xs text-gray-500 mb-1">Pasal / Jenis Pelanggaran</p>
-                    <p class="text-lg font-bold text-gray-900">{{ violation.pasal or '-' }}{% if violation.ayats|length > 0 %} - {% for a in violation.ayats %}{{ a.description }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}</p>
-                </div>
-                <div>
-                    <p class="text-xs text-gray-500 mb-1">Deskripsi / Kronologi</p>
-                    <div class="bg-gray-50 p-3 rounded border border-gray-100 text-sm text-gray-800 leading-relaxed min-h-[80px]">
-                        {{ violation.description }}
-                    </div>
-                </div>
-                {% if violation.is_remitted %}
-                <div class="mt-4 pt-4 border-t border-dashed border-gray-200">
-                    <p class="text-xs text-green-600 font-bold mb-1">Keterangan Remisi:</p>
-                    <p class="text-sm text-gray-700 italic">"{{ violation.remission_reason }}"</p>
-                    <p class="text-xs text-gray-400 mt-1">Diremisi pada: {{ violation.remission_date.strftime('%d/%m/%Y %H:%M') if violation.remission_date else '-' }}</p>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- FOTO BUKTI -->
-        {% if violation.photos|length > 0 %}
-        <div class="mb-8">
-            <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Dokumentasi / Bukti</h3>
-            <div class="grid grid-cols-3 gap-4">
-                {% for photo in violation.photos %}
-                <div class="aspect-video bg-gray-100 rounded border border-gray-200 overflow-hidden relative">
-                    <img src="{{ url_for('static', filename='uploads/' + photo.filename) }}" class="w-full h-full object-cover">
-                </div>
+                {% for r_photo in remisi_photos %}
+                    <img src="{{ url_for('static', filename='uploads/' + r_photo.filename) }}" alt="Bukti Remisi" style="max-width: 150px; max-height: 150px; border: 1px solid #4CAF50; border-radius: 4px; margin-right: 10px; object-fit: cover;">
                 {% endfor %}
             </div>
         </div>
         {% endif %}
-
-        <!-- TANDA TANGAN -->
-        <div class="mt-12 pt-8 border-t-2 border-black">
-            <div class="grid grid-cols-3 gap-4 text-center text-sm">
-                <div>
-                    <p class="mb-16">Siswa Yang Bersangkutan,</p>
-                    <p class="font-bold border-b border-gray-400 inline-block min-w-[120px] pb-1">{{ student.name }}</p>
-                </div>
-                <div>
-                    <p class="mb-16">Mengetahui Orang Tua/Wali,</p>
-                    <p class="font-bold border-b border-gray-400 inline-block min-w-[120px] pb-1">( ................................. )</p>
-                </div>
-                <div>
-                    <p class="mb-16">Guru / Pencatat,</p>
-                    <p class="font-bold border-b border-gray-400 inline-block min-w-[120px] pb-1">{{ violation.di_input_oleh or '.................................' }}</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- FOOTER -->
-        <div class="absolute bottom-6 left-0 right-0 text-center text-[10px] text-gray-400">
-            Dicetak otomatis melalui Sistem Tanse App pada <script>document.write(new Date().toLocaleDateString('id-ID') + ' ' + new Date().toLocaleTimeString('id-ID'))</script>
-        </div>
-
     </div>
+    {% endif %}
 
-    <script>
-        // Auto print jika dibuka di tab baru
-        window.onload = function() {
-            // setTimeout(() => window.print(), 500); 
-        }
-    </script>
+    <div class="footer">
+        <div class="signature-box">
+            <p>Mengetahui,<br>Orang Tua / Wali Siswa</p>
+            <div class="signature-space"></div>
+            <p>(........................................)</p>
+        </div>
+        <div class="signature-box">
+            <p>Admin / Petugas Kedisiplinan</p>
+            <div class="signature-space"></div>
+            <p>( <strong>{{ violation.di_input_oleh or '.....................' }}</strong> )</p>
+        </div>
+    </div>
 </body>
 </html>
