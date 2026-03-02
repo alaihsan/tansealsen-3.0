@@ -1,15 +1,18 @@
 {% extends "base.html" %}
 
 {% block content %}
-<!-- Preloader: Menutupi lag saat dekripsi data awal -->
-<div id="page-loader" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-50 bg-opacity-90 backdrop-blur-sm transition-opacity duration-300">
+<!-- Preloader: Menutupi lag saat dekripsi data awal dan transisi -->
+<div id="page-loader" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-50 transition-opacity duration-500">
     <div class="flex flex-col items-center">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-3"></div>
         <p class="text-blue-600 font-semibold text-sm animate-pulse">Menyiapkan form terenkripsi...</p>
     </div>
 </div>
 
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8" 
+<!-- Main Container dengan Efek Fade & Slide -->
+<div id="main-content"
+     class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 transform transition-all duration-500 ease-out" 
+     :class="pageVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
      x-data="violationForm()" 
      x-init="initForm()" 
      x-cloak>
@@ -17,7 +20,10 @@
     <div class="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden relative">
         <!-- Loading Overlay saat Submit -->
         <div x-show="isSubmitting" 
-             class="absolute inset-0 z-40 flex items-center justify-center bg-white/80 backdrop-blur-sm transition-opacity">
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             class="absolute inset-0 z-40 flex items-center justify-center bg-white/80 backdrop-blur-sm">
             <div class="bg-white p-5 rounded-2xl shadow-2xl border border-gray-100 flex flex-col items-center">
                 <div class="animate-spin rounded-full h-10 w-10 border-4 border-blue-100 border-t-blue-600 mb-3"></div>
                 <p class="text-gray-800 font-bold text-sm">Menyimpan Data...</p>
@@ -83,7 +89,7 @@
                                 class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm cursor-pointer">
                             <option value="" disabled selected>-- Pilih Kategori --</option>
                             {% for cat in categories %}
-                                <option value="{{ cat.id }}">{{ cat.name }}
+                                <option value="{{ cat.id }}">{{ cat.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -173,7 +179,7 @@
             </div>
 
             <div class="pt-6 border-t border-gray-200 flex justify-end gap-3">
-                <a href="{{ url_for('main.home') }}" class="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors">Batal</a>
+                <a href="{{ url_for('main.home') }}" @click.prevent="leavePage('{{ url_for('main.home') }}')" class="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors">Batal</a>
                 <button type="submit" class="px-8 py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-md transition-all active:scale-95 flex items-center justify-center min-w-[140px]">
                     <span x-show="!isSubmitting"><i class="fas fa-save mr-2"></i> Simpan</span>
                     <span x-show="isSubmitting"><i class="fas fa-spinner fa-spin"></i></span>
@@ -184,19 +190,29 @@
 </div>
 
 <script>
-// Hilangkan Preloader saat DOM sudah siap
+// Menghilangkan Preloader saat DOM sudah siap, dilanjutkan memicu fade-in form
 window.addEventListener('load', () => {
     setTimeout(() => {
         const loader = document.getElementById('page-loader');
         if (loader) {
             loader.style.opacity = '0';
-            setTimeout(() => loader.remove(), 300);
+            setTimeout(() => loader.remove(), 500); // 500ms mengikuti duration transition
         }
-    }, 150); // Memberi jeda kecil agar proses enkripsi/render selesai
+    }, 100); // Sedikit jeda agar sistem siap
+});
+
+// Transisi global saat submit selesai atau user klik back button browser
+window.addEventListener('beforeunload', () => {
+    const mainContent = document.getElementById('main-content');
+    if (mainContent) {
+        mainContent.classList.remove('opacity-100', 'translate-y-0');
+        mainContent.classList.add('opacity-0', 'translate-y-8');
+    }
 });
 
 document.addEventListener('alpine:init', () => {
     Alpine.data('violationForm', () => ({
+        pageVisible: false,
         selectedClass: '',
         students: [],
         loadingStudents: false,
@@ -213,6 +229,18 @@ document.addEventListener('alpine:init', () => {
 
         initForm() {
             this.formatDate();
+            // Memicu animasi fade-in & slide-up setelah delay loader
+            setTimeout(() => {
+                this.pageVisible = true;
+            }, 150);
+        },
+
+        // Transisi Halus saat klik Batal
+        leavePage(url) {
+            this.pageVisible = false; // Memicu transisi opacity-0 dan translate-y-8
+            setTimeout(() => {
+                window.location.href = url;
+            }, 400); // Menunggu transisi CSS berjalan sebelum pindah route
         },
 
         formatDate() {
