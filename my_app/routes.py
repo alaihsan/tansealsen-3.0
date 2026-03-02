@@ -516,6 +516,13 @@ def settings_rules():
         rule_id = request.form.get('rule_id')
         rule = ViolationRule.query.filter_by(id=rule_id, school_id=current_user.school_id).first()
         if rule: db.session.delete(rule)
+    elif action == 'edit':
+        rule_id = request.form.get('rule_id')
+        rule = ViolationRule.query.filter_by(id=rule_id, school_id=current_user.school_id).first()
+        if rule:
+            rule.code = request.form.get('code')
+            rule.description = request.form.get('description')
+            flash('Pasal berhasil diperbarui.', 'success')
     db.session.commit()
     return redirect(url_for('main.settings'))
 
@@ -542,6 +549,20 @@ def settings_ayats():
         ayat = Ayat.query.join(ViolationRule).filter(Ayat.id==ayat_id, ViolationRule.school_id==current_user.school_id).first()
         if ayat:
             db.session.delete(ayat)
+    elif action == 'edit':
+        ayat_id = request.form.get('ayat_id')
+        # Pastikan ayat yang diedit benar-benar milik sekolah dari admin yang sedang login
+        ayat = Ayat.query.join(ViolationRule).filter(Ayat.id == ayat_id, ViolationRule.school_id == current_user.school_id).first()
+        if ayat:
+            # Validasi panjang karakter
+            description = request.form.get('description')
+            if len(description) >= 1000:
+                flash('Karakter melebihi batas maksimal 1000 karakter.', 'danger')
+            else:
+                ayat.number = request.form.get('number')
+                ayat.description = description
+                flash('Ayat berhasil diperbarui.', 'success')
+    
     db.session.commit()
     # Redirect back to settings but stay on the "aturan" (Pasal) tab
     return redirect(url_for('main.settings', _anchor='tab-aturan'))

@@ -122,8 +122,8 @@
                                 <div class="flex justify-end gap-3">
                                     <button @click="editOpen = !editOpen" class="text-indigo-600 hover:text-indigo-900">Reset</button>
                                     {% if member.id != current_user.id %}
-                                    <form action="{{ url_for('main.settings_delete_member', user_id=member.id) }}" method="POST" class="inline" onsubmit="return confirm('Hapus anggota ini?')">
-                                        <button type="submit" class="text-red-600 hover:text-red-900">Hapus</button>
+                                    <form id="delete-member-{{ member.id }}" action="{{ url_for('main.settings_delete_member', user_id=member.id) }}" method="POST" class="inline">
+                                        <button type="button" @click="$dispatch('open-delete-modal', { formId: 'delete-member-{{ member.id }}', title: 'Hapus Anggota?', message: 'Tindakan ini akan menghapus akses anggota ini secara permanen.' })" class="text-red-600 hover:text-red-900">Hapus</button>
                                     </form>
                                     {% endif %}
                                 </div>
@@ -164,70 +164,113 @@
                 <button type="submit" class="w-full sm:w-auto bg-blue-600 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 shadow-sm">Tambah</button>
             </form>
 
-            <ul class="space-y-3">
+            <ul class="space-y-4">
                 {% for rule in rules %}
-                <li class="flex items-start justify-between p-4 border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all">
-                    <div class="pr-4 w-full">
-                        <div class="flex items-center justify-between gap-4">
-                            <div>
-                                <span class="inline-block bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded mb-1">{{ rule.code }}</span>
-                                <p class="text-gray-700 text-sm leading-relaxed">{{ rule.description }}</p>
-                            </div>
-                            <div class="flex-shrink-0 flex items-center gap-2">
-                                <form action="{{ url_for('main.settings_rules') }}" method="POST" class="inline">
-                                    <input type="hidden" name="action" value="delete">
-                                    <input type="hidden" name="rule_id" value="{{ rule.id }}">
-                                    <button type="submit" class="text-gray-400 hover:text-red-600 transition-colors p-1" onclick="return confirm('Hapus pasal ini?')">
-                                        <i class="fas fa-trash-alt"></i>
-                                    </button>
-                                </form>
-                            </div>
+                <li class="p-5 border border-gray-200 rounded-xl hover:border-gray-300 transition-all bg-white shadow-sm">
+                    <div class="flex items-start justify-between gap-4 mb-4">
+                        <div>
+                            <span class="inline-block bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-1 rounded mb-2">{{ rule.code }}</span>
+                            <p class="text-gray-800 text-sm font-medium leading-relaxed">{{ rule.description }}</p>
                         </div>
+                        
+                        <!-- Grup Tombol Aksi Pasal -->
+                        <div class="flex-shrink-0 flex items-center gap-1">
+                            <button type="button" 
+                                    data-id="{{ rule.id }}"
+                                    data-code="{{ rule.code }}"
+                                    data-description="{{ rule.description }}"
+                                    @click="$dispatch('open-edit-pasal', { id: $el.getAttribute('data-id'), code: $el.getAttribute('data-code'), description: $el.getAttribute('data-description') })"
+                                    class="text-blue-500 hover:text-blue-700 transition-colors p-2 rounded-full hover:bg-blue-50" title="Edit Pasal">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <form id="delete-rule-{{ rule.id }}" action="{{ url_for('main.settings_rules') }}" method="POST" class="inline">
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="rule_id" value="{{ rule.id }}">
+                                <button type="button" 
+                                        @click="$dispatch('open-delete-modal', { formId: 'delete-rule-{{ rule.id }}', title: 'Hapus Pasal?', message: 'Tindakan ini akan menghapus pasal beserta seluruh ayat di dalamnya secara permanen.' })"
+                                        class="text-gray-400 hover:text-red-600 transition-colors p-2 rounded-full hover:bg-red-50" title="Hapus Pasal">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
 
-                        <!-- Daftar Ayat untuk Pasal ini -->
-                        <div class="mt-3">
-                            {% if rule.ayats|length > 0 %}
-                                <div class="flex flex-wrap gap-2">
-                                    {% for a in rule.ayats %}
-                                        <div class="px-3 py-1 rounded-full bg-gray-100 text-sm text-gray-700 border border-gray-200 flex items-center gap-2">
-                                            <span>{{ a.number or '' }}{% if a.number %} - {% endif %}{{ a.description }}</span>
-                                            <form action="{{ url_for('main.settings_ayats') }}" method="POST" class="inline">
+                    <!-- Daftar Ayat untuk Pasal ini -->
+                    <div class="pl-0 sm:pl-4 mb-4 border-l-0 sm:border-l-2 border-gray-100">
+                        {% if rule.ayats|length > 0 %}
+                            <div class="flex flex-col gap-2">
+                                {% for a in rule.ayats %}
+                                    <div class="px-4 py-2.5 rounded-lg bg-gray-50 text-sm text-gray-700 border border-gray-200 flex items-start sm:items-center justify-between gap-3 group">
+                                        <div class="flex-1">
+                                            {% if a.number %}
+                                                <span class="font-bold text-gray-900 mr-2">{{ a.number }}.</span>
+                                            {% endif %}
+                                            <span class="leading-relaxed">{{ a.description }}</span>
+                                        </div>
+                                        
+                                        <!-- Grup Tombol Aksi Ayat -->
+                                        <div class="inline-flex shrink-0 gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all">
+                                            <button type="button" 
+                                                    data-id="{{ a.id }}"
+                                                    data-number="{{ a.number or '' }}"
+                                                    data-description="{{ a.description }}"
+                                                    @click="$dispatch('open-edit-ayat', { id: $el.getAttribute('data-id'), number: $el.getAttribute('data-number'), description: $el.getAttribute('data-description') })"
+                                                    class="text-blue-500 hover:text-blue-700 p-1.5 rounded bg-white border border-gray-200 hover:border-blue-200 transition-all" title="Edit Ayat">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <form id="delete-ayat-{{ a.id }}" action="{{ url_for('main.settings_ayats') }}" method="POST" class="inline">
                                                 <input type="hidden" name="action" value="delete">
                                                 <input type="hidden" name="ayat_id" value="{{ a.id }}">
-                                                <button type="submit" class="text-red-500 hover:text-red-700 text-xs ml-2" onclick="return confirm('Hapus ayat ini?')">Hapus</button>
+                                                <button type="button" 
+                                                        @click="$dispatch('open-delete-modal', { formId: 'delete-ayat-{{ a.id }}', title: 'Hapus Ayat?', message: 'Apakah Anda yakin ingin menghapus ayat ini secara permanen?' })"
+                                                        class="text-gray-400 hover:text-red-600 p-1.5 rounded bg-white border border-gray-200 hover:border-red-200 transition-all" title="Hapus Ayat">
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </button>
                                             </form>
                                         </div>
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                <p class="text-xs text-gray-400">Belum ada ayat untuk pasal ini.</p>
-                            {% endif %}
-                        </div>
-
-                        <!-- Form Tambah Ayat -->
-                        <form action="{{ url_for('main.settings_ayats') }}" method="POST" class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 items-start ayat-form" data-rule-id="{{ rule.id }}">
-                            <input type="hidden" name="action" value="add">
-                            <input type="hidden" name="rule_id" value="{{ rule.id }}">
-                            <input type="text" name="number" placeholder="No. Ayat (opsional)" class="px-3 py-2 border border-gray-300 rounded text-sm">
-                            
-                            <div class="col-span-2 sm:col-span-1">
-                                <!-- PERBAIKAN: Maxlength mencegah user mengetik melebihi 1000 secara alami -->
-                                <textarea name="description" placeholder="Deskripsi Ayat (maks 1000 karakter)" required class="ayat-textarea w-full px-3 py-2 border border-gray-300 rounded text-sm resize-none transition-all duration-200" maxlength="1000" rows="2" style="min-height: 60px; max-height: 500px;"></textarea>
-                                <div class="flex justify-between items-center mt-2 gap-2">
-                                    <span class="text-xs text-gray-600 whitespace-nowrap"><span class="ayat-counter">0</span>/1000 karakter</span>
-                                    <!-- PERBAIKAN: Kalimat Peringatan Lebih Jelas -->
-                                    <span class="text-xs font-semibold text-red-600 ayat-warning text-right" style="display: none;">⚠️ Karakter sudah mencapai 1000 karakter, harap kurangi</span>
-                                </div>
+                                    </div>
+                                {% endfor %}
                             </div>
-                            
-                            <div class="sm:col-span-3 flex justify-end">
-                                <button type="submit" class="ayat-submit bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-400" style="font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">➕ Tambah Ayat</button>
-                            </div>
-                        </form>
+                        {% else %}
+                            <p class="text-xs text-gray-400 italic">Belum ada ayat untuk pasal ini.</p>
+                        {% endif %}
                     </div>
+
+                    <!-- Form Tambah Ayat -->
+                    <form action="{{ url_for('main.settings_ayats') }}" method="POST" class="mt-4 bg-gray-50 p-4 rounded-xl border border-gray-200 ayat-form" data-rule-id="{{ rule.id }}">
+                        <input type="hidden" name="action" value="add">
+                        <input type="hidden" name="rule_id" value="{{ rule.id }}">
+                        
+                        <div class="flex flex-col sm:flex-row gap-4">
+                            <!-- Nomor Ayat (25% di desktop) -->
+                            <div class="sm:w-1/4">
+                                <input type="text" name="number" placeholder="No. Ayat (opsional)" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            
+                            <!-- Deskripsi Ayat (75% di desktop) -->
+                            <div class="sm:w-3/4 flex flex-col">
+                                <!-- Textarea otomatis menyesuaikan isi dan mencegah >1000 karakter -->
+                                <textarea name="description" placeholder="Deskripsi Ayat (maks 1000 karakter)" required class="ayat-textarea w-full px-3 py-2 border border-gray-300 rounded-lg text-sm transition-all duration-200 overflow-hidden" maxlength="1000" rows="2" style="min-height: 60px; max-height: 500px; resize: none;"></textarea>
+                                
+                                <div class="flex justify-between items-center mt-2 gap-2 px-1">
+                                    <span class="text-xs text-gray-500 font-medium whitespace-nowrap"><span class="ayat-counter">0</span>/1000 karakter</span>
+                                    <span class="text-xs font-bold text-red-500 ayat-warning text-right" style="display: none;">⚠️ Karakter sudah mencapai batas maksimal (1000)</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3 flex justify-end">
+                            <button type="submit" class="ayat-submit bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-400 flex items-center shadow-sm">
+                                <i class="fas fa-plus mr-2"></i> Tambah Ayat
+                            </button>
+                        </div>
+                    </form>
                 </li>
                 {% else %}
-                <li class="text-center text-gray-400 text-sm py-8 border-2 border-dashed border-gray-200 rounded-xl">Belum ada pasal yang ditambahkan.</li>
+                <li class="text-center text-gray-400 text-sm py-12 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50">
+                    <i class="fas fa-book-open text-3xl mb-3 text-gray-300 block"></i>
+                    Belum ada pasal yang ditambahkan.
+                </li>
                 {% endfor %}
             </ul>
         </div>
@@ -255,10 +298,12 @@
                         </div>
                         <p class="font-bold text-gray-800">{{ cat.name }}</p>
                     </div>
-                    <form action="{{ url_for('main.settings_categories') }}" method="POST">
+                    <form id="delete-cat-{{ cat.id }}" action="{{ url_for('main.settings_categories') }}" method="POST">
                         <input type="hidden" name="action" value="delete">
                         <input type="hidden" name="cat_id" value="{{ cat.id }}">
-                        <button type="submit" class="text-gray-400 hover:text-red-600 p-2 rounded-full hover:bg-red-50 transition-colors" onclick="return confirm('Hapus kategori ini?')">
+                        <button type="button" 
+                                @click="$dispatch('open-delete-modal', { formId: 'delete-cat-{{ cat.id }}', title: 'Hapus Kategori?', message: 'Apakah Anda yakin ingin menghapus kategori ini secara permanen?' })"
+                                class="text-gray-400 hover:text-red-600 p-2 rounded-full hover:bg-red-50 transition-colors" title="Hapus Kategori">
                             <i class="fas fa-trash-alt"></i>
                         </button>
                     </form>
@@ -270,7 +315,7 @@
         </div>
     </div>
 
-    <!-- CONTENT: BACKUP & RESTORE (PINDAHAN) -->
+    <!-- CONTENT: BACKUP & RESTORE -->
     <div x-show="activeTab === 'backup'" class="space-y-6" x-transition.opacity>
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 sm:p-6">
             <h2 class="text-lg font-bold text-gray-800 mb-5 pb-3 border-b border-gray-100 flex items-center gap-2">
@@ -297,7 +342,7 @@
                         Upload file ZIP backup untuk mengembalikan data yang hilang. Data dari backup akan ditambahkan ke sistem.
                     </p>
                     <form action="{{ url_for('main.restore_data') }}" method="POST" enctype="multipart/form-data" class="flex flex-col gap-3">
-                        <input type="file" name="backup_file" accept=".zip" required class="block w-full text-sm text-orange-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-200 file:text-orange-800 hover:file:bg-orange-300">
+                        <input type="file" name="backup_file" accept=".zip" required class="block w-full text-sm text-orange-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-200 file:text-orange-800 hover:file:bg-orange-300 cursor-pointer">
                         <button type="submit" class="w-full px-4 py-2.5 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-medium shadow-sm transition-colors text-sm flex items-center justify-center" onclick="return confirm('Proses ini akan menambahkan data dari file backup ke database. Lanjutkan?')">
                             <i class="fas fa-upload mr-2"></i> Upload & Restore
                         </button>
@@ -307,6 +352,8 @@
             </div>
         </div>
     </div>
+
+    <!-- M O D A L S -->
 
     <!-- MODAL ADD MEMBER -->
     <div x-data="{ open: false }" 
@@ -347,17 +394,134 @@
         </div>
     </div>
 
+    <!-- MODAL EDIT PASAL -->
+    <div x-data="{ open: false, id: '', code: '', description: '' }" 
+         @open-edit-pasal.window="open = true; id = $event.detail.id; code = $event.detail.code; description = $event.detail.description;" 
+         x-show="open" 
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 transition-opacity" 
+         style="display: none;" x-cloak>
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 relative transform transition-all" @click.outside="open = false">
+            <button @click="open = false" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><i class="fas fa-times text-lg"></i></button>
+            
+            <div class="mb-5 flex items-center gap-3">
+                <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
+                    <i class="fas fa-edit text-lg"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900">Edit Pasal</h3>
+            </div>
+
+            <form action="{{ url_for('main.settings_rules') }}" method="POST" class="space-y-4">
+                <input type="hidden" name="action" value="edit">
+                <input type="hidden" name="rule_id" x-model="id">
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">Kode Pasal</label>
+                    <input type="text" name="code" x-model="code" required class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">Keterangan Pasal</label>
+                    <input type="text" name="description" x-model="description" required class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                
+                <div class="pt-2 flex justify-end gap-3">
+                    <button type="button" @click="open = false" class="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors">Batal</button>
+                    <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-md transition-all active:scale-95">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL EDIT AYAT -->
+    <div x-data="{ open: false, id: '', number: '', description: '' }" 
+         @open-edit-ayat.window="
+            open = true; 
+            id = $event.detail.id; 
+            number = $event.detail.number; 
+            description = $event.detail.description;
+            // Memicu trigger untuk auto-expand textarea dan menghitung karakter
+            setTimeout(() => {
+                const ta = document.getElementById('edit-ayat-textarea');
+                if (ta) ta.dispatchEvent(new Event('input'));
+            }, 50);
+         " 
+         x-show="open" 
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 transition-opacity" 
+         style="display: none;" x-cloak>
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 relative transform transition-all" @click.outside="open = false">
+            <button @click="open = false" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><i class="fas fa-times text-lg"></i></button>
+            
+            <div class="mb-5 flex items-center gap-3">
+                <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
+                    <i class="fas fa-edit text-lg"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900">Edit Ayat</h3>
+            </div>
+
+            <form action="{{ url_for('main.settings_ayats') }}" method="POST" class="space-y-4 ayat-form">
+                <input type="hidden" name="action" value="edit">
+                <input type="hidden" name="ayat_id" x-model="id">
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">No. Ayat (Opsional)</label>
+                    <input type="text" name="number" x-model="number" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">Deskripsi Ayat</label>
+                    <textarea name="description" id="edit-ayat-textarea" x-model="description" required maxlength="1000" class="ayat-textarea w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 overflow-hidden" rows="3" style="min-height: 80px; max-height: 400px; resize: none;"></textarea>
+                    
+                    <div class="flex justify-between items-center mt-2 gap-2 px-1">
+                        <span class="text-xs text-gray-500 font-medium whitespace-nowrap"><span class="ayat-counter">0</span>/1000 karakter</span>
+                        <span class="text-xs font-bold text-red-500 ayat-warning text-right" style="display: none;">⚠️ Karakter sudah mencapai batas maksimal (1000)</span>
+                    </div>
+                </div>
+                
+                <div class="pt-2 flex justify-end gap-3">
+                    <button type="button" @click="open = false" class="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors">Batal</button>
+                    <button type="submit" class="ayat-submit px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-md transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL KONFIRMASI HAPUS GLOBAL -->
+    <div x-data="{ open: false, title: '', message: '', formEl: null }" 
+         @open-delete-modal.window="
+            open = true; 
+            title = $event.detail.title; 
+            message = $event.detail.message; 
+            formEl = document.getElementById($event.detail.formId);
+         "
+         x-show="open" 
+         class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 transition-opacity" 
+         style="display: none;" x-cloak>
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 relative transform transition-all" @click.outside="open = false">
+            <div class="mb-5 flex flex-col items-center text-center">
+                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4 text-red-600">
+                    <i class="fas fa-exclamation-triangle text-3xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2" x-text="title"></h3>
+                <p class="text-sm text-gray-500 leading-relaxed" x-text="message"></p>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button type="button" @click="open = false" class="w-1/2 bg-gray-100 text-gray-700 py-2.5 rounded-xl font-semibold hover:bg-gray-200 transition-colors">Batal</button>
+                <button type="button" @click="if(formEl) formEl.submit();" class="w-1/2 bg-red-600 text-white py-2.5 rounded-xl font-bold hover:bg-red-700 shadow-md transition-all active:scale-95">Ya, Hapus</button>
+            </div>
+        </div>
+    </div>
+
 </div>
 {% endblock %}
 
 <script>
-// Function to auto-expand textarea
+// Function to auto-expand textarea smoothly
 function autoExpandTextarea(textarea) {
+    // Resetting height to auto is necessary to shrink the textarea when text is deleted
     textarea.style.height = 'auto';
+    // Set the height to scrollHeight + a little buffer for borders, up to max-height 500px
     textarea.style.height = Math.min(textarea.scrollHeight, 500) + 'px';
 }
 
-// PERBAIKAN: Function to update character counter and warning
+// Function to update character counter and warning
 function updateAyatCounter(textarea) {
     const form = textarea.closest('.ayat-form');
     if (!form) return;
@@ -367,43 +531,41 @@ function updateAyatCounter(textarea) {
     const submitBtn = form.querySelector('.ayat-submit');
     const charCount = textarea.value.length;
     
-    // Update counter display
+    // Update counter display in real-time
     if (counter) {
         counter.textContent = charCount;
     }
     
-    // Auto-expand textarea
+    // Auto-expand textarea based on content
     autoExpandTextarea(textarea);
     
-    // PERBAIKAN: Limit trigger at exactly 1000 characters
+    // Handle warning and button state precisely at 1000 characters
     if (charCount >= 1000) {
         // At or over limit
-        if (warning) {
-            warning.textContent = '⚠️ Karakter sudah mencapai 1000 karakter, harap kurangi';
-            warning.style.display = 'block';
-        }
+        if (warning) warning.style.display = 'block';
         if (submitBtn) submitBtn.disabled = true;
         textarea.classList.add('border-red-500', 'bg-red-50');
+        textarea.classList.remove('border-gray-300');
     } else {
         // Under limit
         if (warning) warning.style.display = 'none';
         if (submitBtn) submitBtn.disabled = false;
         textarea.classList.remove('border-red-500', 'bg-red-50');
+        textarea.classList.add('border-gray-300');
     }
 }
 
-// Initialize on page load and when dynamically added
+// Initialize listeners on page load and when dynamically added
 function initializeAyatTextareas() {
     document.querySelectorAll('.ayat-textarea').forEach(textarea => {
-        // Remove old listener if exists
+        // Remove old listener if exists to prevent duplicates
         textarea.removeEventListener('input', handleTextareaInput);
         
-        // Add new listener
+        // Add new listener for input event (typing, pasting, etc)
         textarea.addEventListener('input', handleTextareaInput);
         
-        // Set initial state
+        // Set initial state based on current content
         updateAyatCounter(textarea);
-        autoExpandTextarea(textarea);
     });
 }
 
@@ -419,6 +581,8 @@ if (document.readyState === 'loading') {
     initializeAyatTextareas();
 }
 
-// Also initialize after a delay to catch dynamically added textareas
-setTimeout(initializeAyatTextareas, 500);
+// Also initialize after a delay to catch textareas dynamically shown via Alpine.js tabs
+window.addEventListener('hashchange', () => {
+    setTimeout(initializeAyatTextareas, 100);
+});
 </script>
